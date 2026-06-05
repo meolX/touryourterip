@@ -2,7 +2,7 @@ import prisma from '../db/prisma.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
-const saltRounds = 10;
+
 
 
 // User Registration
@@ -14,6 +14,7 @@ const registerUser = async (req,res)=>{
   if(existingUser){
     return res.status(409).json({message:'User already exists'});
   }
+  let saltRounds = 10;
   const hashedPassword = await bcrypt.hash(password,saltRounds);
   const Newuser = await prisma.user.create({
     data:{
