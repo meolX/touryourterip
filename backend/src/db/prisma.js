@@ -1,10 +1,10 @@
-import PrismaClient from '@prisma/client'
-import { DATABASE_URL } from '../config/index.js';
-const { PrismaClient: Prisma } = PrismaClient;
+import { PrismaClient } from '@prisma/client';
+import config from '../config/index.js';
 
-const prisma = new Prisma({
+const prisma = new PrismaClient({
   datasources: {
-    db: { url: DATABASE_URL }
-  }});
+    db: { url: config.DATABASE_URL }
+  }
+});
 
 export default prisma;
