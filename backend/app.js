@@ -18,6 +18,9 @@ app.get('/', (req, res) => {
   res.send('Welcome to the backend server!');
 });
 
+import authRoutes from './src/routes/authroute.js';
+app.use('/api', authRoutes);
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
