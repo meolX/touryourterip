@@ -127,12 +127,15 @@ model Property {
 model Room {
   id              String   @id @default(uuid())
   property_id     String
+  name            String
   room_type       RoomType
+  max_guests      Int
   bed_count       Int
   price_per_night Float
-  total_ac        Boolean  @default(false)
-  total_wifi      Boolean  @default(false)
-  total_tv        Boolean  @default(false)
+  total_units     Int      @default(1)
+  has_ac          Boolean  @default(false)
+  has_wifi        Boolean  @default(false)
+  has_tv          Boolean  @default(false)
   is_active       Boolean  @default(true)
   created_at      DateTime @default(now())
 
@@ -189,8 +192,11 @@ model Booking {
   check_in            DateTime      @db.Date
   check_out           DateTime      @db.Date
   nights              Int
-  guest_count         Int
+  guests_count        Int
+  room_price          Float
+  taxes               Float         @default(0)
   total_amount        Float
+  currency            String        @default("INR")
   status              BookingStatus @default(pending)
   cancellation_reason String?
   booked_at           DateTime      @default(now())
