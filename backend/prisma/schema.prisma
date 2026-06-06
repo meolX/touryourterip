@@ -93,6 +93,7 @@ model User {
   is_verified   Boolean   @default(false)
   is_active     Boolean   @default(true)
   refreshToken  String?
+  fcm_token     String?
   otp           String?
   otpExpiresAt  DateTime?
   created_at    DateTime  @default(now())

@@ -23,8 +23,10 @@
     "prisma:studio": "npx prisma studio"
   },
   "dependencies": {
+    "@elastic/elasticsearch": "^9.4.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",
@@ -32,11 +34,14 @@
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-rate-limit": "^7.5.0",
+    "firebase-admin": "^13.10.0",
     "helmet": "^8.2.0",
+    "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.1.1",
     "pg": "^8.21.0",
     "razorpay": "^2.9.6",
+    "twilio": "^6.0.2",
     "zod": "^3.24.0"
   },
   "devDependencies": {

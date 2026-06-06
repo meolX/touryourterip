@@ -1,5 +1,7 @@
 import prisma from '../../db/prisma.js';
 import ApiError from '../../utils/ApiError.js';
+import { isESConfigured } from '../../db/elasticsearch.js';
+import { esSearchProperties, esSuggestions } from './search.es.js';
 
 // ─── HAVERSINE DISTANCE (km) ───────────────────────────
 const haversineDistance = (lat1, lon1, lat2, lon2) => {
@@ -97,6 +99,14 @@ const buildOrderBy = (sortBy, sortOrder) => {
 
 // ─── SEARCH PROPERTIES ─────────────────────────────────
 export const searchProperties = async (filters) => {
+  if (isESConfigured()) {
+    try {
+      return await esSearchProperties(filters);
+    } catch (error) {
+      console.error('[SEARCH] Elasticsearch search failed, falling back to Prisma:', error.message);
+    }
+  }
+
   const where = buildPropertyFilter(filters);
   const orderBy = buildOrderBy(filters.sort_by, filters.sort_order);
 
@@ -239,6 +249,14 @@ export const searchProperties = async (filters) => {
 // ─── SUGGESTIONS (Auto-complete) ────────────────────────
 export const getSuggestions = async (query, limit = 5) => {
   const q = query.trim();
+
+  if (isESConfigured()) {
+    try {
+      return await esSuggestions(q, limit);
+    } catch (error) {
+      console.error('[SEARCH] Elasticsearch suggestions failed, falling back to Prisma:', error.message);
+    }
+  }
 
   if (q.length < 2) {
     throw new ApiError(400, 'Query must be at least 2 characters');
