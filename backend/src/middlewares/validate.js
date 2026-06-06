@@ -2,10 +2,16 @@ import ApiError from '../utils/ApiError.js';
 
 /**
  * Middleware factory for Zod schema validation.
- * Usage: validate(registerSchema)
+ *
+ * @param {import('zod').ZodSchema} schema - Zod schema to validate against
+ * @param {'body' | 'query' | 'params'} source - Request property to validate (default: 'body')
+ *
+ * Usage:
+ *   validate(registerSchema)            → validates req.body
+ *   validate(searchSchema, 'query')     → validates req.query
  */
-const validate = (schema) => (req, _res, next) => {
-  const result = schema.safeParse(req.body);
+const validate = (schema, source = 'body') => (req, _res, next) => {
+  const result = schema.safeParse(req[source]);
 
   if (!result.success) {
     const errors = result.error.errors.map((err) => ({
@@ -16,7 +22,7 @@ const validate = (schema) => (req, _res, next) => {
     throw new ApiError(400, 'Validation failed', errors);
   }
 
-  req.body = result.data;
+  req[source] = result.data;
   next();
 };
 
