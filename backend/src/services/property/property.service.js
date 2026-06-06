@@ -1,5 +1,7 @@
 import prisma from '../../db/prisma.js';
 import ApiError from '../../utils/ApiError.js';
+import { geocodeAddress } from '../../utils/geocoding.js';
+import { syncPropertyToES } from '../../db/elasticsearch.js';
 
 /**
  * Check if the user is the owner (host) of the property or is an admin.
@@ -30,13 +32,27 @@ export const createProperty = async (hostId, data) => {
     throw new ApiError(409, 'A property with this title already exists');
   }
 
+  // Geocode address if coordinates are not manually provided
+  let latitude = data.latitude;
+  let longitude = data.longitude;
+  if (latitude === undefined || longitude === undefined || latitude === null || longitude === null) {
+    const coords = await geocodeAddress(data.address_line1, data.city, data.state, data.country);
+    latitude = coords.latitude;
+    longitude = coords.longitude;
+  }
+
   const property = await prisma.property.create({
     data: {
       ...data,
       host_id: hostId,
+      latitude,
+      longitude,
       amenities: data.amenities ? JSON.stringify(data.amenities) : null,
     },
   });
+
+  // Sync to Elasticsearch
+  await syncPropertyToES(property.id);
 
   return property;
 };
@@ -129,13 +145,39 @@ export const updateProperty = async (propertyId, userId, userRole, data) => {
     }
   }
 
+  // Auto-geocode if address updates and coordinates are not manually provided
+  let latitude = data.latitude;
+  let longitude = data.longitude;
+  
+  const hasAddressChanged = 
+    (data.address_line1 && data.address_line1 !== property.address_line1) ||
+    (data.city && data.city !== property.city) ||
+    (data.state && data.state !== property.state) ||
+    (data.country && data.country !== property.country);
+
+  if (hasAddressChanged && latitude === undefined && longitude === undefined) {
+    const coords = await geocodeAddress(
+      data.address_line1 || property.address_line1,
+      data.city || property.city,
+      data.state || property.state,
+      data.country || property.country
+    );
+    latitude = coords.latitude;
+    longitude = coords.longitude;
+  }
+
   const updatedProperty = await prisma.property.update({
     where: { id: propertyId },
     data: {
       ...data,
+      latitude: latitude !== undefined ? latitude : undefined,
+      longitude: longitude !== undefined ? longitude : undefined,
       amenities: data.amenities ? JSON.stringify(data.amenities) : undefined,
     },
   });
+
+  // Sync to Elasticsearch
+  await syncPropertyToES(propertyId);
 
   return {
     ...updatedProperty,
@@ -159,6 +201,9 @@ export const deleteProperty = async (propertyId, userId, userRole) => {
     }),
   ]);
 
+  // Sync state change to Elasticsearch
+  await syncPropertyToES(propertyId);
+
   return { message: 'Property deleted (deactivated) successfully' };
 };
 
@@ -172,6 +217,9 @@ export const addRoom = async (propertyId, userId, userRole, data) => {
       property_id: propertyId,
     },
   });
+
+  // Sync to Elasticsearch
+  await syncPropertyToES(propertyId);
 
   return room;
 };
@@ -207,6 +255,9 @@ export const updateRoom = async (propertyId, roomId, userId, userRole, data) => 
     data,
   });
 
+  // Sync to Elasticsearch
+  await syncPropertyToES(propertyId);
+
   return updatedRoom;
 };
 
@@ -226,6 +277,9 @@ export const deleteRoom = async (propertyId, roomId, userId, userRole) => {
     where: { id: roomId },
     data: { is_active: false },
   });
+
+  // Sync to Elasticsearch
+  await syncPropertyToES(propertyId);
 
   return { message: 'Room deactivated successfully' };
 };
@@ -259,6 +313,9 @@ export const addPhoto = async (propertyId, userId, userRole, data) => {
     },
   });
 
+  // Sync to Elasticsearch
+  await syncPropertyToES(propertyId);
+
   return photo;
 };
 
@@ -277,6 +334,9 @@ export const deletePhoto = async (propertyId, photoId, userId, userRole) => {
   await prisma.propertyPhoto.delete({
     where: { id: photoId },
   });
+
+  // Sync to Elasticsearch
+  await syncPropertyToES(propertyId);
 
   return { message: 'Photo deleted successfully' };
 };
@@ -303,6 +363,9 @@ export const setCoverPhoto = async (propertyId, photoId, userId, userRole) => {
       data: { is_cover: true },
     }),
   ]);
+
+  // Sync to Elasticsearch
+  await syncPropertyToES(propertyId);
 
   return { message: 'Cover photo updated successfully' };
 };
