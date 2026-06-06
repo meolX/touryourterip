@@ -61,6 +61,26 @@ enum PaymentMethod {
   wallet
 }
 
+enum NotificationType {
+  booking_confirmed
+  booking_cancelled
+  booking_reminder
+  payment_success
+  payment_failed
+  review_received
+  property_approved
+  property_suspended
+  welcome
+  general
+}
+
+enum NotificationChannel {
+  in_app
+  email
+  sms
+  push
+}
+
 // ─── USERS ──────────────────────────────────────────────
 
 model User {
@@ -82,7 +102,8 @@ model User {
   properties Property[]
   wishlists  Wishlist[]
   bookings   Booking[]    @relation("GuestBookings")
-  reviews    Review[]
+  reviews         Review[]
+  notifications   Notification[]
 
   @@map("users")
 }
@@ -279,4 +300,26 @@ model Review {
   property Property @relation(fields: [property_id], references: [id])
 
   @@map("reviews")
+}
+
+// ─── NOTIFICATIONS ──────────────────────────────────────
+
+model Notification {
+  id          String              @id @default(uuid())
+  user_id     String
+  type        NotificationType    @default(general)
+  channel     NotificationChannel @default(in_app)
+  title       String
+  message     String
+  data        Json?               // Flexible payload (booking_id, property_id, etc.)
+  is_read     Boolean             @default(false)
+  read_at     DateTime?
+  created_at  DateTime            @default(now())
+
+  // Relations
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([user_id])
+  @@index([is_read])
+  @@map("notifications")
 }
