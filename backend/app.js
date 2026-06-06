@@ -10,6 +10,7 @@ import config from './src/config/index.js';
 
 // ─── Service route imports ─────────────────────────────
 import authRoutes from './src/services/user/auth.routes.js';
+import propertyRoutes from './src/services/property/property.routes.js';
 
 dotenv.config();
 
@@ -38,6 +39,9 @@ app.get('/health', (_req, res) => {
 // ─── API Routes (v1) ───────────────────────────────────
 // User service — Auth
 app.use('/api/v1/auth', authRoutes);
+
+// Property service
+app.use('/api/v1/properties', propertyRoutes);
 
 // ─── 404 Handler ────────────────────────────────────────
 app.use((_req, res) => {
