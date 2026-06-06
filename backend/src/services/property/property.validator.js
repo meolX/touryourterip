@@ -29,14 +29,17 @@ export const updatePropertySchema = createPropertySchema.partial().omit({ type: 
 
 // ─── Create Room Schema ─────────────────────────────────
 export const createRoomSchema = z.object({
+  name: z.string({ required_error: 'Name is required' }).trim().min(2, 'Name is too short'),
   room_type: z.enum(['single', 'double', 'deluxe', 'suite', 'dormitory'], {
     errorMap: () => ({ message: 'Room type must be one of: single, double, deluxe, suite, dormitory' }),
   }),
+  max_guests: z.number({ required_error: 'Max guests is required' }).int().positive('Max guests must be at least 1'),
   bed_count: z.number({ required_error: 'Bed count is required' }).int().positive('Bed count must be at least 1'),
   price_per_night: z.number({ required_error: 'Price per night is required' }).nonnegative('Price cannot be negative'),
-  total_ac: z.boolean().optional().default(false),
-  total_wifi: z.boolean().optional().default(false),
-  total_tv: z.boolean().optional().default(false),
+  total_units: z.number().int().positive('Total units must be at least 1').optional().default(1),
+  has_ac: z.boolean().optional().default(false),
+  has_wifi: z.boolean().optional().default(false),
+  has_tv: z.boolean().optional().default(false),
 });
 
 // ─── Update Room Schema ─────────────────────────────────

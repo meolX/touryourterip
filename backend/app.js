@@ -11,6 +11,7 @@ import config from './src/config/index.js';
 // ─── Service route imports ─────────────────────────────
 import authRoutes from './src/services/user/auth.routes.js';
 import propertyRoutes from './src/services/property/property.routes.js';
+import bookingRoutes from './src/services/booking/booking.routes.js';
 
 dotenv.config();
 
@@ -42,6 +43,9 @@ app.use('/api/v1/auth', authRoutes);
 
 // Property service
 app.use('/api/v1/properties', propertyRoutes);
+
+// Booking service
+app.use('/api/v1/bookings', bookingRoutes);
 
 // ─── 404 Handler ────────────────────────────────────────
 app.use((_req, res) => {
