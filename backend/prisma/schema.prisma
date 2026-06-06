@@ -119,6 +119,12 @@ model Property {
   photos         PropertyPhoto[]
   reviews        Review[]
 
+  @@index([city])
+  @@index([state])
+  @@index([type])
+  @@index([status])
+  @@index([base_price_per_night])
+  @@index([rating_avg])
   @@map("properties")
 }
 
