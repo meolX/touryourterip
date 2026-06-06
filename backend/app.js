@@ -1,27 +1,53 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+
+import { apiLimiter } from './src/middlewares/rateLimiter.js';
+import errorHandler from './src/middlewares/errorHandler.js';
+
+// ─── Service route imports ─────────────────────────────
+import authRoutes from './src/services/user/auth.routes.js';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors());
+// ─── Global Middleware ──────────────────────────────────
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  credentials: true,
+}));
 app.use(helmet());
-app.use(express.json());
+app.use(express.json({ limit: '16kb' }));
+app.use(express.urlencoded({ extended: true, limit: '16kb' }));
+app.use(cookieParser());
+app.use(apiLimiter);
 
-// Routes
-app.get('/', (req, res) => {
-  res.send('Welcome to the backend server!');
+// ─── Health Check ───────────────────────────────────────
+app.get('/health', (_req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    service: 'TourYourTrip API',
+    timestamp: new Date().toISOString(),
+  });
 });
 
-import authRoutes from './src/routes/authroute.js';
-app.use('/api', authRoutes);
+// ─── API Routes (v1) ───────────────────────────────────
+// User service — Auth
+app.use('/api/v1/auth', authRoutes);
 
-// Start the server
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+// ─── 404 Handler ────────────────────────────────────────
+app.use((_req, res) => {
+  res.status(404).json({
+    success: false,
+    statusCode: 404,
+    message: 'Route not found',
+  });
 });
+
+// ─── Global Error Handler ───────────────────────────────
+app.use(errorHandler);
+
+export default app;
