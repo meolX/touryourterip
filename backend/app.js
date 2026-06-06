@@ -6,6 +6,7 @@ import dotenv from 'dotenv';
 
 import { apiLimiter } from './src/middlewares/rateLimiter.js';
 import errorHandler from './src/middlewares/errorHandler.js';
+import config from './src/config/index.js';
 
 // ─── Service route imports ─────────────────────────────
 import authRoutes from './src/services/user/auth.routes.js';
@@ -49,5 +50,15 @@ app.use((_req, res) => {
 
 // ─── Global Error Handler ───────────────────────────────
 app.use(errorHandler);
+
+const PORT = config.PORT;
+
+app.listen(PORT, () => {
+  console.log(`\n🚀 TourYourTrip API Server`);
+  console.log(`   Environment : ${config.NODE_ENV}`);
+  console.log(`   Port        : ${PORT}`);
+  console.log(`   Health      : http://localhost:${PORT}/health`);
+  console.log(`   Auth API    : http://localhost:${PORT}/api/v1/auth\n`);
+});
 
 export default app;
