@@ -1,13 +1,271 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// TourYourTrip — Prisma Schema
+// Matches the ERD diagram exactly
 
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ─── ENUMS ──────────────────────────────────────────────
+
+enum Role {
+  guest
+  host
+  admin
+}
+
+enum PropertyType {
+  hotel
+  pg
+  villa
+  resort
+}
+
+enum PropertyStatus {
+  active
+  inactive
+  suspended
+}
+
+enum RoomType {
+  single
+  double
+  deluxe
+  suite
+  dormitory
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  cancelled
+  checked_in
+  checked_out
+  no_show
+}
+
+enum PaymentStatus {
+  pending
+  success
+  failed
+  refunded
+}
+
+enum PaymentMethod {
+  upi
+  card
+  netbanking
+  wallet
+}
+
+// ─── USERS ──────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  phone         String?   @unique
+  password_hash String
+  role          Role      @default(guest)
+  is_verified   Boolean   @default(false)
+  is_active     Boolean   @default(true)
+  refreshToken  String?
+  otp           String?
+  otpExpiresAt  DateTime?
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+
+  // Relations
+  properties Property[]
+  wishlists  Wishlist[]
+  bookings   Booking[]    @relation("GuestBookings")
+  reviews    Review[]
+
+  @@map("users")
+}
+
+// ─── PROPERTIES ─────────────────────────────────────────
+
+model Property {
+  id                  String         @id @default(uuid())
+  host_id             String
+  type                PropertyType
+  title               String         @unique
+  description         String?
+  address_line1       String
+  city                String
+  state               String
+  country             String
+  pincode             String
+  latitude            Float?
+  longitude           Float?
+  amenities           Json?
+  house_rules         String?
+  base_price_per_night Float
+  currency            String         @default("INR")
+  status              PropertyStatus @default(active)
+  rating_avg          Float?         @default(0)
+  review_count        Int            @default(0)
+  created_at          DateTime       @default(now())
+
+  // Relations
+  host           User             @relation(fields: [host_id], references: [id])
+  rooms          Room[]
+  wishlists      Wishlist[]
+  bookings       Booking[]
+  photos         PropertyPhoto[]
+  reviews        Review[]
+
+  @@map("properties")
+}
+
+// ─── ROOMS ──────────────────────────────────────────────
+
+model Room {
+  id              String   @id @default(uuid())
+  property_id     String
+  room_type       RoomType
+  bed_count       Int
+  price_per_night Float
+  total_ac        Boolean  @default(false)
+  total_wifi      Boolean  @default(false)
+  total_tv        Boolean  @default(false)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+
+  // Relations
+  property      Property       @relation(fields: [property_id], references: [id])
+  availability  Availability[]
+  bookings      Booking[]
+  photos        PropertyPhoto[]
+
+  @@map("rooms")
+}
+
+// ─── WISHLISTS ──────────────────────────────────────────
+
+model Wishlist {
+  id          String   @id @default(uuid())
+  user_id     String
+  property_id String
+  created_at  DateTime @default(now())
+
+  // Relations
+  user     User     @relation(fields: [user_id], references: [id])
+  property Property @relation(fields: [property_id], references: [id])
+
+  @@unique([user_id, property_id])
+  @@map("wishlists")
+}
+
+// ─── AVAILABILITY ───────────────────────────────────────
+
+model Availability {
+  id              String   @id @default(uuid())
+  room_id         String
+  date            DateTime @db.Date
+  available_count Int
+  price_override  Float?
+  is_blocked      Boolean  @default(false)
+  block_reason    String?
+
+  // Relations
+  room Room @relation(fields: [room_id], references: [id])
+
+  @@unique([room_id, date])
+  @@map("availability")
+}
+
+// ─── BOOKINGS ───────────────────────────────────────────
+
+model Booking {
+  id                  String        @id @default(uuid())
+  guest_id            String
+  property_id         String
+  room_id             String
+  check_in            DateTime      @db.Date
+  check_out           DateTime      @db.Date
+  nights              Int
+  guest_count         Int
+  total_amount        Float
+  status              BookingStatus @default(pending)
+  cancellation_reason String?
+  booked_at           DateTime      @default(now())
+  cancelled_at        DateTime?
+
+  // Relations
+  guest    User     @relation("GuestBookings", fields: [guest_id], references: [id])
+  property Property @relation(fields: [property_id], references: [id])
+  room     Room     @relation(fields: [room_id], references: [id])
+  payment  Payment?
+  review   Review?
+
+  @@map("bookings")
+}
+
+// ─── PROPERTY PHOTOS ────────────────────────────────────
+
+model PropertyPhoto {
+  id          String  @id @default(uuid())
+  property_id String
+  room_id     String?
+  caption     String?
+  is_cover    Boolean @default(false)
+  url         String
+
+  // Relations
+  property Property @relation(fields: [property_id], references: [id])
+  room     Room?    @relation(fields: [room_id], references: [id])
+
+  @@map("property_photos")
+}
+
+// ─── PAYMENTS ───────────────────────────────────────────
+
+model Payment {
+  id                  String        @id @default(uuid())
+  booking_id          String        @unique
+  amount              Float
+  currency            String        @default("INR")
+  net_amount          Float?
+  status              PaymentStatus @default(pending)
+  method              PaymentMethod?
+  gateway_order_id    String?
+  gateway_payment_id  String?
+  paid_at             DateTime?
+  refund_id           String?
+  refunded_at         DateTime?
+
+  // Relations
+  booking Booking @relation(fields: [booking_id], references: [id])
+
+  @@map("payments")
+}
+
+// ─── REVIEWS ────────────────────────────────────────────
+
+model Review {
+  id                  String   @id @default(uuid())
+  booking_id          String   @unique
+  guest_id            String
+  property_id         String
+  overall_rating      Float
+  cleanliness_rating  Float?
+  location_rating     Float?
+  service_rating      Float?
+  value_rating        Float?
+  comment             String?
+  is_published        Boolean  @default(true)
+  created_at          DateTime @default(now())
+
+  // Relations
+  booking  Booking  @relation(fields: [booking_id], references: [id])
+  guest    User     @relation(fields: [guest_id], references: [id])
+  property Property @relation(fields: [property_id], references: [id])
+
+  @@map("reviews")
 }
